@@ -1,0 +1,33 @@
+name: Download AEMET Radar
+
+on:
+  schedule:
+    - cron: "15 */6 * * *"  # cada 6 hores (minut 15)
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Run downloader
+        run: python download_radar.py
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/*.tif || true
+          git commit -m "Add new radar file" || echo "No changes"
+          git push
