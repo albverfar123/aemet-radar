@@ -2,8 +2,11 @@ name: Download AEMET Radar
 
 on:
   schedule:
-    - cron: "15 */6 * * *"  # cada 6 hores (minut 15)
+    - cron: "15 */6 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write  # <-- permet git push
 
 jobs:
   download:
@@ -30,4 +33,4 @@ jobs:
           git config user.email "actions@github.com"
           git add data/*.tif || true
           git commit -m "Add new radar file" || echo "No changes"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/albverfar123/aemet-radar.git HEAD:main
+          git push
