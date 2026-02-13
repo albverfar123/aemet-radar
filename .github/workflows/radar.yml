@@ -2,11 +2,11 @@ name: Download AEMET Radar
 
 on:
   schedule:
-    - cron: "15 */6 * * *"
+    - cron: "15 */6 * * *"  # cada 6 hores (minut 15)
   workflow_dispatch:
 
 permissions:
-  contents: write  # <-- permet git push
+  contents: write  # permet git push
 
 jobs:
   download:
