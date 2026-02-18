@@ -5,6 +5,7 @@ import ast
 from scipy.spatial import cKDTree
 from rasterio.transform import rowcol, xy
 from pathlib import Path
+import os
 
 DATA_DIR = Path("data")
 
@@ -108,5 +109,11 @@ for tiff_file in tiffs:
     # -----------------------------------
     ds.to_netcdf(nc_file)
 
-print("Done.")
+    try:
+        os.remove(tiff_file)
+        print(f"  🗑️ Esborrat TIFF original")
+    except Exception as e:
+        print(f"  ⚠️ No s'ha pogut esborrar el TIFF: {e}")
+    print("Done.")
+
 
