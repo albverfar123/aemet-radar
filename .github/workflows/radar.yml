@@ -1,36 +1,59 @@
-name: Download AEMET Radar
+name: Download and Convert AEMET Radar
 
 on:
   schedule:
-    - cron: "15 */6 * * *"  # cada 6 hores (minut 15)
+    - cron: "15 */6 * * *"   # cada 6 hores (00:15, 06:15, 12:15, 18:15 UTC)
   workflow_dispatch:
 
 permissions:
-  contents: write  # permet git push
+  contents: write
 
 jobs:
   download:
     runs-on: ubuntu-latest
 
     steps:
+      # ----------------------------------------
+      # Checkout repository
+      # ----------------------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # ----------------------------------------
+      # Setup Python
+      # ----------------------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install deps
-        run: pip install requests
+      # ----------------------------------------
+      # Install dependencies
+      # ----------------------------------------
+      - name: Install dependencies
+        run: |
+          pip install requests rasterio xarray numpy scipy
 
-      - name: Run downloader
+      # ----------------------------------------
+      # Run downloader (el teu script actual)
+      # ----------------------------------------
+      - name: Download latest radar file
         run: python download_radar.py
 
+      # ----------------------------------------
+      # Convert TIFF → NetCDF
+      # ----------------------------------------
+      - name: Convert TIFF to NetCDF
+        run: python tiff_to_nc.py
+
+      # ----------------------------------------
+      # Commit new data
+      # ----------------------------------------
       - name: Commit data
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add data/*.tif || true
-          git commit -m "Add new radar file" || echo "No changes"
+          git add data/*.nc || true
+          git commit -m "Add new radar data (TIFF + NetCDF)" || echo "No changes"
           git push
