@@ -106,16 +106,7 @@ for tiff_file in tiffs:
     # -----------------------------------
     # Compressió NetCDF
     # -----------------------------------
-    encoding = {
-        "precipitation_mm": {
-            "zlib": True,
-            "complevel": 4,
-            "dtype": "float32"
-        }
-    }
-
-    ds.to_netcdf(nc_file, encoding=encoding)
-
-    print("Saved", nc_file.name)
+    ds.to_netcdf(nc_file)
 
 print("Done.")
+
