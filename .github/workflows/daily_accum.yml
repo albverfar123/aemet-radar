@@ -29,6 +29,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data/*.nc data/*.txt || true
+          git add data/*.nc data/*.txt png/*.png
           git commit -m "Add daily accumulation" || echo "No changes"
           git push
