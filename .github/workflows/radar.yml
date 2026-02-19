@@ -54,6 +54,6 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add data/*.tif || true
-          git add data/*.nc || true
+          git add data/*.nc png/*.png || true
           git commit -m "Add new radar data (TIFF + NetCDF)" || echo "No changes"
           git push
