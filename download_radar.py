@@ -2,7 +2,7 @@ import requests
 import tarfile
 import io
 import os
-from datetime import datetime
+import re
 
 URL = "https://www.aemet.es/es/api-eltiempo/radar/download/RNN"
 OUT_DIR = "data"
@@ -24,24 +24,35 @@ with tarfile.open(fileobj=io.BytesIO(r.content), mode="r:gz") as tar:
         if "GLD" in name and "RNN.6HR_CAPPI" in name and name.endswith(".tif"):
             print("Trobat:", name)
 
-            # extreiem el fitxer a memòria
             extracted = tar.extractfile(member)
             if extracted is None:
                 continue
 
-            # intentem obtenir hora del nom
-            # exemple: ...202602131200...
-            timestamp = None
-            for part in name.split("_"):
-                if part.isdigit() and len(part) >= 12:
-                    timestamp = part[:12]
-                    break
+            # -------------------------------------------------
+            # 🔴 EXTREURE DATA REAL DEL NOM ORIGINAL
+            # -------------------------------------------------
+            # busca patró YYMMDDHHMMSS després de GLD
+            m = re.search(r"GLD(\d{12})", name)
 
-            if timestamp is None:
-                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+            if m:
+                ts = m.group(1)  # YYMMDDHHMMSS
+
+                # convertir a AAAAMMDD_HHmm
+                year = "20" + ts[0:2]
+                month = ts[2:4]
+                day = ts[4:6]
+                hour = ts[6:8]
+                minute = ts[8:10]
+
+                timestamp = f"{year}{month}{day}_{hour}{minute}"
             else:
-                timestamp = f"{timestamp[:8]}_{timestamp[8:12]}"
+                # fallback molt rar
+                from datetime import datetime
+                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
 
+            # -------------------------------------------------
+            # Nom final
+            # -------------------------------------------------
             out_name = f"GLD_RNN6H_{timestamp}.tif"
             out_path = os.path.join(OUT_DIR, out_name)
 
