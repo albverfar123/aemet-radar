@@ -6,13 +6,14 @@ from scipy.spatial import cKDTree
 from rasterio.transform import rowcol, xy
 from pathlib import Path
 import os
+
+# 🔥 IMPORTANT per GitHub Actions (headless)
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-
 DATA_DIR = Path("data")
-PNG_DIR = DATA_DIR / "png"
+PNG_DIR = Path("png")
 PNG_DIR.mkdir(exist_ok=True)
 
 # -----------------------
@@ -21,36 +22,31 @@ PNG_DIR.mkdir(exist_ok=True)
 lon_min, lon_max = 0.0, 3.5
 lat_min, lat_max = 40.0, 43.1
 
-# escala visual PNG
-vmin = 0
-vmax = 40
-
 def is_yellow(rgb_pixel):
     r, g, b = rgb_pixel
     return (r >= 200) & (g >= 180) & (b <= 50)
 
-tiffs = sorted(DATA_DIR.glob("GLD_RNN6H_*.tif"))
+# -----------------------
+# Buscar TIFFs
+# -----------------------
+tiffs = list(DATA_DIR.glob("GLD_RNN6H_*.tif"))
+print(f"🔎 TIFF trobats: {len(tiffs)}")
 
 for tiff_file in tiffs:
+
+    print("----")
+    print("📂 Processing", tiff_file.name)
 
     nc_file = tiff_file.with_suffix(".nc")
     png_file = PNG_DIR / (tiff_file.stem + ".png")
 
-    # si ja existeix tot → saltar
-    if not nc_file.exists():
-        need_nc = True
-    else:
-        need_nc = False
-    
-    if not png_file.exists():
-        need_png = True
-    else:
-        need_png = False
-    
-    if not need_nc and not need_png:
-        continue
+    print("   NC existeix:", nc_file.exists())
+    print("   PNG existeix:", png_file.exists())
 
-    print("Processing", tiff_file.name)
+    # si tot ja existeix → saltar
+    if nc_file.exists() and png_file.exists():
+        print("   ⏭️ Saltant (ja processat)")
+        continue
 
     with rasterio.open(tiff_file) as src:
         R = src.read(1)
@@ -122,61 +118,57 @@ for tiff_file in tiffs:
             for c in range(c0, c1+1)
         ])
 
-    # =============================
-    # NETCDF
-    # =============================
-    ds = xr.Dataset(
-        {"precipitation_mm": (("lat", "lon"), data_mm)},
-        coords={"lat": lats, "lon": lons},
-    )
-    if need_nc:
+    # =========================================================
+    # 💾 NETCDF
+    # =========================================================
+    if not nc_file.exists():
+        print("   💾 Guardant NetCDF...")
+        ds = xr.Dataset(
+            {"precipitation_mm": (("lat", "lon"), data_mm)},
+            coords={"lat": lats, "lon": lons},
+        )
         ds.to_netcdf(nc_file)
-        print("  💾 NetCDF guardat")
 
-    # =============================
-    # PNG TRANSPARENT (NOU)
-    # =============================
-    if need_png:
-        try:
-            plot_data = data_mm.copy()
-            plot_data[plot_data <= 0] = np.nan
-    
-            plt.figure(figsize=(6, 5))
-    
-            plt.imshow(
-                plot_data,
-                origin="upper",
-                cmap="turbo",
-                vmin=vmin,
-                vmax=vmax,
-            )
-    
-            plt.axis("off")
-    
-            plt.savefig(
-                png_file,
-                dpi=150,
-                bbox_inches="tight",
-                pad_inches=0,
-                transparent=True,
-            )
-    
-            plt.close()
-    
-            print("  🖼️ PNG creat")
-    
-        except Exception as e:
-            print(f"  ⚠️ Error creant PNG: {e}")
+    # =========================================================
+    # 🖼️ PNG TRANSPARENT
+    # =========================================================
+    if not png_file.exists():
+        print("   🎨 Generant PNG...")
 
-    # =============================
-    # ESBORRAR TIFF
-    # =============================
+        data_plot = data_mm.copy()
+        data_plot[data_plot <= 0] = np.nan
+
+        plt.figure(figsize=(6, 6))
+        cmap = plt.cm.Blues.copy()
+        cmap.set_bad(alpha=0)
+
+        im = plt.imshow(
+            data_plot,
+            origin="upper",
+            cmap=cmap,
+            vmin=0,
+            vmax=50  # ⚠️ pots ajustar
+        )
+
+        plt.colorbar(im, label="Precipitació (mm)")
+        plt.axis("off")
+        plt.tight_layout()
+
+        plt.savefig(png_file, dpi=150, bbox_inches="tight", pad_inches=0)
+        plt.close()
+
+        print(f"   ✅ PNG guardat: {png_file}")
+
+    # =========================================================
+    # 🗑️ BORRAR TIFF
+    # =========================================================
     try:
         os.remove(tiff_file)
-        print("  🗑️ TIFF esborrat")
+        print("   🗑️ TIFF esborrat")
     except Exception as e:
-        print(f"  ⚠️ No s'ha pogut esborrar el TIFF: {e}")
+        print(f"   ⚠️ No s'ha pogut esborrar el TIFF: {e}")
 
-print("Done.")
+print("🏁 Procés completat")
+
 
 
