@@ -1,8 +1,12 @@
 from pathlib import Path
 import xarray as xr
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 DATA_DIR = Path("data")
+PNG_DIR = Path("png")
+PNG_DIR.mkdir(exist_ok=True)
 
 files = sorted(DATA_DIR.glob("GLD_RNN6H_*.nc"))
 
@@ -17,14 +21,19 @@ for f in files:
     groups.setdefault(day, []).append(f)
 
 for day, flist in groups.items():
+
     if len(flist) < 4:
         continue
 
     out_file = DATA_DIR / f"GLD_RNN24H_{day.strftime('%Y%m%d')}.nc"
     txt_file = DATA_DIR / f"GLD_RNN24H_{day.strftime('%Y%m%d')}.txt"
+    png_file = PNG_DIR / f"GLD_RNN24H_{day.strftime('%Y%m%d')}.png"
 
     if out_file.exists():
         continue
+
+    print("----")
+    print(f"📊 Calculant acumulat {day}")
 
     # -----------------------
     # Obrim datasets
@@ -40,8 +49,44 @@ for day, flist in groups.items():
     out = xr.Dataset({"precipitation_mm_24h": daily_sum})
     out.to_netcdf(out_file)
 
+    # =========================
+    # 🖼️ GENERAR PNG
+    # =========================
+    print("   🎨 Generant PNG...")
+
+    data = daily_sum.values.astype(float)
+    data[data <= 0] = np.nan
+
+    lats = out["lat"].values
+    lons = out["lon"].values
+
+    vmin = 0
+    vmax = 40  # ajustable
+
+    plt.figure(figsize=(6, 5))
+
+    plt.imshow(
+        data,
+        origin="upper",
+        cmap="turbo",
+        vmin=vmin,
+        vmax=vmax,
+    )
+
+    plt.axis("off")
+
+    plt.savefig(
+        png_file,
+        dpi=150,
+        bbox_inches="tight",
+        pad_inches=0,
+        transparent=True,
+    )
+
+    plt.close()
+
     # -----------------------
-    # ✏️ Guardar TXT traçabilitat
+    # TXT traçabilitat
     # -----------------------
     with open(txt_file, "w", encoding="utf-8") as f:
         f.write(f"Daily accumulation for {day}\n")
@@ -49,5 +94,9 @@ for day, flist in groups.items():
         for nc in sorted_files:
             f.write(nc.name + "\n")
 
-    print("Saved", out_file.name)
-    print("Saved", txt_file.name)
+    print("   ✅ Saved", out_file.name)
+    print("   ✅ Saved", png_file.name)
+    print("   ✅ Saved", txt_file.name)
+
+print("🏁 Procés completat")
+
