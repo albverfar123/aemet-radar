@@ -34,8 +34,14 @@
     font-size: 12px;
   }
 
-  select {
+  input[type="date"] {
     width: 160px;
+  }
+
+  .status {
+    font-size: 11px;
+    margin-top: 6px;
+    color: #444;
   }
 </style>
 
@@ -46,9 +52,11 @@
 <div id="map"></div>
 
 <div class="control">
-  <div><b>Dia:</b></div>
-  <select id="daySelector"></select>
-  <br><br>
+  <div><b>Data:</b></div>
+  <input id="datePicker" type="date">
+  <div class="status" id="statusMsg"></div>
+
+  <br>
   Opacitat:<br>
   <input id="opacitySlider" type="range" min="0" max="1" step="0.05" value="0.7">
 </div>
@@ -61,19 +69,12 @@
 // CONFIGURACIÓ
 // =============================
 
-// 👉 LLISTA DE DIES DISPONIBLES (ACTUALITZA AUTOMÀTICAMENT SI VOLS)
-var availableDays = [
-  "20260213",
-  "20260214",
-  "20260215",
-  "20260216",
-  "20260217",
-  "20260218",
-  "20260219"
-];
+// 🔴 EDITA AQUESTS ANYS SI CAL
+const MIN_DATE = "2026-01-01";
+const MAX_DATE = "2026-12-31";
 
 // bounding box (el teu)
-var imageBounds = [
+const imageBounds = [
   [40.001230899999996, -0.001548599999999567],
   [43.1012309, 3.4984513999999995]
 ];
@@ -88,47 +89,71 @@ L.tileLayer(
   { maxZoom: 19 }
 ).addTo(map);
 
-// =============================
-// OVERLAY GLOBAL
-// =============================
-var overlay = null;
-
-function loadDay(day) {
-
-  var pngPath = "png/GLD_RNN24H_" + day + ".png";
-
-  if (overlay) {
-    map.removeLayer(overlay);
-  }
-
-  overlay = L.imageOverlay(
-    pngPath,
-    imageBounds,
-    { opacity: document.getElementById("opacitySlider").value }
-  ).addTo(map);
-}
-
-// =============================
-// OMPLIR SELECTOR
-// =============================
-var selector = document.getElementById("daySelector");
-
-availableDays.forEach(day => {
-  var opt = document.createElement("option");
-  opt.value = day;
-  opt.textContent = day;
-  selector.appendChild(opt);
-});
-
-// carregar primer dia
-loadDay(availableDays[0]);
 map.fitBounds(imageBounds);
 
 // =============================
-// CANVI DE DIA
+// SELECTOR DATA
 // =============================
-selector.addEventListener("change", function(e) {
-  loadDay(e.target.value);
+const datePicker = document.getElementById("datePicker");
+const statusMsg = document.getElementById("statusMsg");
+
+datePicker.min = MIN_DATE;
+datePicker.max = MAX_DATE;
+
+// per defecte: avui
+const today = new Date().toISOString().slice(0,10);
+datePicker.value = today;
+
+// =============================
+// OVERLAY
+// =============================
+var overlay = null;
+
+function formatDateToYYYYMMDD(dateStr) {
+  return dateStr.replaceAll("-", "");
+}
+
+function loadDate(dateStr) {
+
+  if (!dateStr) return;
+
+  const yyyymmdd = formatDateToYYYYMMDD(dateStr);
+  const pngPath = "png/GLD_RNN24H_" + yyyymmdd + ".png";
+
+  statusMsg.textContent = "Carregant…";
+
+  const img = new Image();
+
+  img.onload = function () {
+
+    if (overlay) {
+      map.removeLayer(overlay);
+    }
+
+    overlay = L.imageOverlay(
+      pngPath,
+      imageBounds,
+      { opacity: document.getElementById("opacitySlider").value }
+    ).addTo(map);
+
+    statusMsg.textContent = "✔ Dades disponibles";
+  };
+
+  img.onerror = function () {
+    statusMsg.textContent = "✖ No hi ha dades per aquest dia";
+  };
+
+  img.src = pngPath;
+}
+
+// carregar inicial
+loadDate(datePicker.value);
+
+// =============================
+// CANVI DATA
+// =============================
+datePicker.addEventListener("change", function(e) {
+  loadDate(e.target.value);
 });
 
 // =============================
@@ -162,4 +187,6 @@ legend.addTo(map);
 
 </body>
 </html>
+
+
 
