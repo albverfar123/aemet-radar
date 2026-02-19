@@ -32,7 +32,7 @@ jobs:
       # ----------------------------------------
       - name: Install dependencies
         run: |
-          pip install requests rasterio xarray numpy scipy
+          pip install requests rasterio xarray numpy matplotlib scipy
 
       # ----------------------------------------
       # Run downloader (el teu script actual)
