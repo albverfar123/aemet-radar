@@ -20,7 +20,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install xarray numpy netcdf4
+        run: pip install xarray numpy netcdf4 matplotlib
 
       - name: Run accumulation
         run: python accumulate_24h.py
