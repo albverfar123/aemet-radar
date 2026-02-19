@@ -13,7 +13,7 @@ DATA_DIR = Path("data")
 # Zona d'interès
 # -----------------------
 lon_min, lon_max = 0.0, 3.5
-lat_min, lat_max = 40.0, 43.5
+lat_min, lat_max = 40.0, 43.1
 
 def is_yellow(rgb_pixel):
     r, g, b = rgb_pixel
@@ -115,5 +115,6 @@ for tiff_file in tiffs:
     except Exception as e:
         print(f"  ⚠️ No s'ha pogut esborrar el TIFF: {e}")
     print("Done.")
+
 
 
