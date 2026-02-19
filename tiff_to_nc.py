@@ -6,14 +6,21 @@ from scipy.spatial import cKDTree
 from rasterio.transform import rowcol, xy
 from pathlib import Path
 import os
+import matplotlib.pyplot as plt
 
 DATA_DIR = Path("data")
+PNG_DIR = DATA_DIR / "png"
+PNG_DIR.mkdir(exist_ok=True)
 
 # -----------------------
 # Zona d'interès
 # -----------------------
 lon_min, lon_max = 0.0, 3.5
 lat_min, lat_max = 40.0, 43.1
+
+# escala visual PNG
+vmin = 0
+vmax = 40
 
 def is_yellow(rgb_pixel):
     r, g, b = rgb_pixel
@@ -24,7 +31,10 @@ tiffs = sorted(DATA_DIR.glob("GLD_RNN6H_*.tif"))
 for tiff_file in tiffs:
 
     nc_file = tiff_file.with_suffix(".nc")
-    if nc_file.exists():
+    png_file = PNG_DIR / (tiff_file.stem + ".png")
+
+    # si ja existeix tot → saltar
+    if nc_file.exists() and png_file.exists():
         continue
 
     print("Processing", tiff_file.name)
@@ -99,22 +109,59 @@ for tiff_file in tiffs:
             for c in range(c0, c1+1)
         ])
 
+    # =============================
+    # NETCDF
+    # =============================
     ds = xr.Dataset(
         {"precipitation_mm": (("lat", "lon"), data_mm)},
         coords={"lat": lats, "lon": lons},
     )
 
-    # -----------------------------------
-    # Compressió NetCDF
-    # -----------------------------------
     ds.to_netcdf(nc_file)
+    print("  💾 NetCDF guardat")
 
+    # =============================
+    # PNG TRANSPARENT (NOU)
+    # =============================
+    try:
+        plot_data = data_mm.copy()
+        plot_data[plot_data <= 0] = np.nan
+
+        plt.figure(figsize=(6, 5))
+
+        plt.imshow(
+            plot_data,
+            origin="upper",
+            cmap="turbo",
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+        plt.axis("off")
+
+        plt.savefig(
+            png_file,
+            dpi=150,
+            bbox_inches="tight",
+            pad_inches=0,
+            transparent=True,
+        )
+
+        plt.close()
+
+        print("  🖼️ PNG creat")
+
+    except Exception as e:
+        print(f"  ⚠️ Error creant PNG: {e}")
+
+    # =============================
+    # ESBORRAR TIFF
+    # =============================
     try:
         os.remove(tiff_file)
-        print(f"  🗑️ Esborrat TIFF original")
+        print("  🗑️ TIFF esborrat")
     except Exception as e:
         print(f"  ⚠️ No s'ha pogut esborrar el TIFF: {e}")
-    print("Done.")
 
-
+print("Done.")
 
