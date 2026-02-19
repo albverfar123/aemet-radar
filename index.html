@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Visor precipitació</title>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+  html, body, #map {
+    height: 100%;
+    margin: 0;
+  }
+
+  .control {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: white;
+    padding: 12px;
+    z-index: 1000;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .legend-box {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  select {
+    width: 160px;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div class="control">
+  <div><b>Dia:</b></div>
+  <select id="daySelector"></select>
+  <br><br>
+  Opacitat:<br>
+  <input id="opacitySlider" type="range" min="0" max="1" step="0.05" value="0.7">
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// =============================
+// CONFIGURACIÓ
+// =============================
+
+// 👉 LLISTA DE DIES DISPONIBLES (ACTUALITZA AUTOMÀTICAMENT SI VOLS)
+var availableDays = [
+  "20260213",
+  "20260214",
+  "20260215",
+  "20260216",
+  "20260217",
+  "20260218",
+  "20260219"
+];
+
+// bounding box (el teu)
+var imageBounds = [
+  [40.001230899999996, -0.001548599999999567],
+  [43.501230899999996, 3.4984513999999995]
+];
+
+// =============================
+// MAPA BASE
+// =============================
+var map = L.map('map').setView([41.5, 1.5], 7);
+
+L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { maxZoom: 19 }
+).addTo(map);
+
+// =============================
+// OVERLAY GLOBAL
+// =============================
+var overlay = null;
+
+function loadDay(day) {
+
+  var pngPath = "png/GLD_RNN24H_" + day + ".png";
+
+  if (overlay) {
+    map.removeLayer(overlay);
+  }
+
+  overlay = L.imageOverlay(
+    pngPath,
+    imageBounds,
+    { opacity: document.getElementById("opacitySlider").value }
+  ).addTo(map);
+}
+
+// =============================
+// OMPLIR SELECTOR
+// =============================
+var selector = document.getElementById("daySelector");
+
+availableDays.forEach(day => {
+  var opt = document.createElement("option");
+  opt.value = day;
+  opt.textContent = day;
+  selector.appendChild(opt);
+});
+
+// carregar primer dia
+loadDay(availableDays[0]);
+map.fitBounds(imageBounds);
+
+// =============================
+// CANVI DE DIA
+// =============================
+selector.addEventListener("change", function(e) {
+  loadDay(e.target.value);
+});
+
+// =============================
+// SLIDER OPACITAT
+// =============================
+document
+  .getElementById('opacitySlider')
+  .addEventListener('input', function (e) {
+    if (overlay) overlay.setOpacity(e.target.value);
+  });
+
+// =============================
+// LLEGENDA
+// =============================
+var legend = L.control({ position: "bottomright" });
+
+legend.onAdd = function () {
+  var div = L.DomUtil.create("div", "legend-box");
+
+  div.innerHTML = `
+    <b>Precipitació (mm)</b><br>
+    <img src="colorbar.png" width="200">
+  `;
+
+  return div;
+};
+
+legend.addTo(map);
+
+</script>
+
+</body>
+</html>
