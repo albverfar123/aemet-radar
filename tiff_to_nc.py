@@ -6,7 +6,10 @@ from scipy.spatial import cKDTree
 from rasterio.transform import rowcol, xy
 from pathlib import Path
 import os
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 
 DATA_DIR = Path("data")
 PNG_DIR = DATA_DIR / "png"
@@ -34,7 +37,17 @@ for tiff_file in tiffs:
     png_file = PNG_DIR / (tiff_file.stem + ".png")
 
     # si ja existeix tot → saltar
-    if nc_file.exists() and png_file.exists():
+    if not nc_file.exists():
+        need_nc = True
+    else:
+        need_nc = False
+    
+    if not png_file.exists():
+        need_png = True
+    else:
+        need_png = False
+    
+    if not need_nc and not need_png:
         continue
 
     print("Processing", tiff_file.name)
@@ -116,43 +129,44 @@ for tiff_file in tiffs:
         {"precipitation_mm": (("lat", "lon"), data_mm)},
         coords={"lat": lats, "lon": lons},
     )
-
-    ds.to_netcdf(nc_file)
-    print("  💾 NetCDF guardat")
+    if need_nc:
+        ds.to_netcdf(nc_file)
+        print("  💾 NetCDF guardat")
 
     # =============================
     # PNG TRANSPARENT (NOU)
     # =============================
-    try:
-        plot_data = data_mm.copy()
-        plot_data[plot_data <= 0] = np.nan
-
-        plt.figure(figsize=(6, 5))
-
-        plt.imshow(
-            plot_data,
-            origin="upper",
-            cmap="turbo",
-            vmin=vmin,
-            vmax=vmax,
-        )
-
-        plt.axis("off")
-
-        plt.savefig(
-            png_file,
-            dpi=150,
-            bbox_inches="tight",
-            pad_inches=0,
-            transparent=True,
-        )
-
-        plt.close()
-
-        print("  🖼️ PNG creat")
-
-    except Exception as e:
-        print(f"  ⚠️ Error creant PNG: {e}")
+    if need_png:
+        try:
+            plot_data = data_mm.copy()
+            plot_data[plot_data <= 0] = np.nan
+    
+            plt.figure(figsize=(6, 5))
+    
+            plt.imshow(
+                plot_data,
+                origin="upper",
+                cmap="turbo",
+                vmin=vmin,
+                vmax=vmax,
+            )
+    
+            plt.axis("off")
+    
+            plt.savefig(
+                png_file,
+                dpi=150,
+                bbox_inches="tight",
+                pad_inches=0,
+                transparent=True,
+            )
+    
+            plt.close()
+    
+            print("  🖼️ PNG creat")
+    
+        except Exception as e:
+            print(f"  ⚠️ Error creant PNG: {e}")
 
     # =============================
     # ESBORRAR TIFF
@@ -164,4 +178,5 @@ for tiff_file in tiffs:
         print(f"  ⚠️ No s'ha pogut esborrar el TIFF: {e}")
 
 print("Done.")
+
 
