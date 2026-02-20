@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <meta charset="utf-8" />
@@ -25,6 +24,7 @@
     z-index: 1000;
     border-radius: 8px;
     font-size: 13px;
+    width: 190px;
   }
 
   .legend-box {
@@ -35,7 +35,7 @@
   }
 
   input[type="date"] {
-    width: 160px;
+    width: 100%;
   }
 
   .status {
@@ -43,8 +43,28 @@
     margin-top: 6px;
     color: #444;
   }
-</style>
 
+  /* 🔹 NOVETAT: fletxes */
+  .nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .nav-buttons button {
+    width: 48%;
+    padding: 4px 0;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+  }
+
+  .nav-buttons button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+</style>
 </head>
 
 <body>
@@ -53,6 +73,13 @@
 
 <div class="control">
   <div><b>Data:</b></div>
+
+  <!-- 🔹 BOTONS DE NAVEGACIÓ -->
+  <div class="nav-buttons">
+    <button id="prevDay">◀ Dia</button>
+    <button id="nextDay">Dia ▶</button>
+  </div>
+
   <input id="datePicker" type="date">
   <div class="status" id="statusMsg"></div>
 
@@ -68,12 +95,9 @@
 // =============================
 // CONFIGURACIÓ
 // =============================
-
-// 🔴 EDITA AQUESTS ANYS SI CAL
 const MIN_DATE = "2026-01-01";
 const MAX_DATE = "2026-12-31";
 
-// bounding box (el teu)
 const imageBounds = [
   [40.001230899999996, -0.001548599999999567],
   [43.1012309, 3.4984513999999995]
@@ -96,13 +120,36 @@ map.fitBounds(imageBounds);
 // =============================
 const datePicker = document.getElementById("datePicker");
 const statusMsg = document.getElementById("statusMsg");
+const prevBtn = document.getElementById("prevDay");
+const nextBtn = document.getElementById("nextDay");
 
 datePicker.min = MIN_DATE;
 datePicker.max = MAX_DATE;
 
-// per defecte: avui
+// avui per defecte
 const today = new Date().toISOString().slice(0,10);
 datePicker.value = today;
+
+// =============================
+// FUNCIONS DE DATA
+// =============================
+function changeDateBy(days) {
+  let d = new Date(datePicker.value);
+  d.setDate(d.getDate() + days);
+
+  const newDate = d.toISOString().slice(0,10);
+
+  if (newDate < MIN_DATE || newDate > MAX_DATE) return;
+
+  datePicker.value = newDate;
+  loadDate(newDate);
+  updateButtons();
+}
+
+function updateButtons() {
+  prevBtn.disabled = (datePicker.value <= MIN_DATE);
+  nextBtn.disabled = (datePicker.value >= MAX_DATE);
+}
 
 // =============================
 // OVERLAY
@@ -146,19 +193,25 @@ function loadDate(dateStr) {
   img.src = pngPath;
 }
 
+// =============================
+// EVENTS
+// =============================
+
 // carregar inicial
 loadDate(datePicker.value);
+updateButtons();
 
-// =============================
-// CANVI DATA
-// =============================
+// calendari
 datePicker.addEventListener("change", function(e) {
   loadDate(e.target.value);
+  updateButtons();
 });
 
-// =============================
-// SLIDER OPACITAT
-// =============================
+// fletxes
+prevBtn.addEventListener("click", () => changeDateBy(-1));
+nextBtn.addEventListener("click", () => changeDateBy(1));
+
+// slider opacitat
 document
   .getElementById('opacitySlider')
   .addEventListener('input', function (e) {
@@ -187,6 +240,7 @@ legend.addTo(map);
 
 </body>
 </html>
+
 
 
 
