@@ -3,6 +3,7 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 DATA_DIR = Path("data")
 PNG_DIR = Path("png")
@@ -39,7 +40,11 @@ for day, flist in groups.items():
     # Obrim datasets
     # -----------------------
     sorted_files = sorted(flist)
-    ds_list = [xr.open_dataset(f) for f in sorted_files]
+
+    ds_list = []
+    for f in sorted_files:
+        ds_list.append(xr.open_dataset(f))
+
     ds_all = xr.concat(ds_list, dim="time")
 
     valid_count = ds_all["precipitation_mm"].notnull().sum(dim="time")
@@ -56,9 +61,6 @@ for day, flist in groups.items():
 
     data = daily_sum.values.astype(float)
     data[data <= 0] = np.nan
-
-    lats = out["lat"].values
-    lons = out["lon"].values
 
     vmin = 0
     vmax = 40  # ajustable
@@ -98,5 +100,23 @@ for day, flist in groups.items():
     print("   ✅ Saved", png_file.name)
     print("   ✅ Saved", txt_file.name)
 
+    # =========================
+    # 🗑️ ELIMINAR FITXERS 6H UTILITZATS
+    # =========================
+    print("   🗑️ Eliminant fitxers 6H utilitzats...")
+
+    # tanquem datasets abans d'esborrar
+    ds_all.close()
+    for ds in ds_list:
+        ds.close()
+
+    for f in sorted_files:
+        try:
+            os.remove(f)
+            print(f"      ✔ Esborrat {f.name}")
+        except Exception as e:
+            print(f"      ⚠️ No s'ha pogut esborrar {f.name}: {e}")
+
 print("🏁 Procés completat")
+
 
