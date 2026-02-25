@@ -10,7 +10,7 @@
 />
 
 <style>
-  html, body, #map {
+  html, body {
     height: 100%;
     margin: 0;
   }
@@ -56,11 +56,12 @@
     top: 60px;
     right: 10px;
     background: white;
-    padding: 12px;
+    padding: 14px;
     z-index: 1500;
     border-radius: 8px;
     font-size: 13px;
     font-family: sans-serif;
+    width: 230px;
   }
 
   .legend-box {
@@ -92,6 +93,16 @@
     margin-top: 4px;
     color: #333;
   }
+
+  .info-box {
+    margin-top: 10px;
+    padding: 8px;
+    background: #f4f4f4;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #333;
+  }
+
 </style>
 </head>
 
@@ -117,10 +128,15 @@
       <button id="prevDay">◀</button>
       <button id="nextDay">▶</button>
     </div>
+
+    <div class="info-box">
+      Mostra la precipitació acumulada en 24 hores
+      corresponent al dia seleccionat.
+    </div>
   </div>
 
   <div id="weeklyControls" style="display:none;">
-    <b>Setmana (diumenge):</b><br>
+    <b>Setmana (final diumenge):</b><br>
     <input id="weekPicker" type="date">
 
     <div class="nav-arrows">
@@ -129,6 +145,11 @@
     </div>
 
     <div class="week-label" id="weekLabel"></div>
+
+    <div class="info-box">
+      Mostra la precipitació acumulada dels 7 dies
+      que finalitzen el diumenge indicat.
+    </div>
   </div>
 
   <div class="status" id="statusMsg"></div>
@@ -142,10 +163,12 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+
 // =================================================
 // CONFIG
 // =================================================
 let mode = "daily";
+const NODATA_PNG = "nodata.png";
 
 const imageBounds = [
   [40.0012309, -0.0015486],
@@ -176,7 +199,7 @@ function formatDateToYYYYMMDD(dateStr) {
 
 function getSunday(dateStr) {
   const d = new Date(dateStr);
-  const day = d.getDay(); // 0=dg
+  const day = d.getDay();
   const diff = 7 - day;
   d.setDate(d.getDate() + (day === 0 ? 0 : diff));
   return d.toISOString().slice(0,10);
@@ -189,6 +212,24 @@ function formatWeekLabel(sundayStr) {
 
   const opts = { day: '2-digit', month: 'short', year: 'numeric' };
   return `${start.toLocaleDateString('ca-ES', opts)} → ${end.toLocaleDateString('ca-ES', opts)}`;
+}
+
+// =================================================
+// SHOW NODATA
+// =================================================
+function showNoData(message) {
+
+  if (overlay) {
+    map.removeLayer(overlay);
+  }
+
+  overlay = L.imageOverlay(
+    NODATA_PNG,
+    imageBounds,
+    { opacity: opacitySlider.value }
+  ).addTo(map);
+
+  statusMsg.textContent = message;
 }
 
 // =================================================
@@ -243,8 +284,9 @@ function loadDaily(dateStr) {
     statusMsg.textContent = "✔ Dades disponibles";
   };
 
-  img.onerror = () =>
-    statusMsg.textContent = "✖ No hi ha dades per aquest dia";
+  img.onerror = function () {
+    showNoData("✖ No hi ha dades per aquest dia");
+  };
 
   img.src = pngPath;
 }
@@ -276,14 +318,15 @@ function loadWeekly(dateStr) {
     statusMsg.textContent = "✔ Dades disponibles";
   };
 
-  img.onerror = () =>
-    statusMsg.textContent = "✖ No hi ha dades per aquesta setmana";
+  img.onerror = function () {
+    showNoData("✖ No hi ha dades per aquesta setmana");
+  };
 
   img.src = pngPath;
 }
 
 // =================================================
-// TAB SWITCH
+// MODE SWITCH
 // =================================================
 function setMode(newMode) {
 
@@ -329,7 +372,6 @@ opacitySlider.addEventListener("input", e => {
   if (overlay) overlay.setOpacity(e.target.value);
 });
 
-// arrows daily
 prevDay.onclick = () => {
   const d = new Date(datePicker.value);
   d.setDate(d.getDate() - 1);
@@ -344,7 +386,6 @@ nextDay.onclick = () => {
   loadDaily(datePicker.value);
 };
 
-// arrows weekly
 prevWeek.onclick = () => {
   const d = new Date(weekPicker.value);
   d.setDate(d.getDate() - 7);
@@ -357,7 +398,6 @@ nextWeek.onclick = () => {
   loadWeekly(d.toISOString().slice(0,10));
 };
 
-// tabs
 tabDaily.onclick = () => setMode("daily");
 tabWeekly.onclick = () => setMode("weekly");
 tabReadme.onclick = () => alert("README properament 😉");
@@ -366,6 +406,7 @@ tabReadme.onclick = () => alert("README properament 😉");
 
 </body>
 </html>
+
 
 
 
