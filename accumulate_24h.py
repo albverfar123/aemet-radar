@@ -38,7 +38,7 @@ for day, flist in groups.items():
     print(f"📊 Calculant acumulat {day}")
 
     ds_list = []
-    for f in sorted_files:
+    for f in sorted(flist):
         ds_list.append(xr.open_dataset(f))
 
     ds_all = xr.concat(ds_list, dim="time")
@@ -88,14 +88,14 @@ for day, flist in groups.items():
     with open(txt_file, "w", encoding="utf-8") as f:
         f.write(f"Daily accumulation for {day}\n")
         f.write("Input files used:\n")
-        for nc in sorted_files:
+        for nc in sorted(flist):
             f.write(nc.name + "\n")
 
     ds_all.close()
     for ds in ds_list:
         ds.close()
 
-    for f in sorted_files:
+    for f in flist:
         try:
             os.remove(f)
             print(f"      ✔ Esborrat {f.name}")
@@ -193,5 +193,6 @@ if today.weekday() == 0:
             print("   ✅ Setmanal generat")
 else:
     print("📅 Avui no és dilluns — skip setmanal")
+
 
 
